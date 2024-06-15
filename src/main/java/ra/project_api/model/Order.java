@@ -8,6 +8,7 @@ import ra.project_api.constrants.OrderStatus;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
@@ -23,7 +24,7 @@ public class Order
     @Column(name = "order_id")
     private Long orderId;
     @Column(name = "serial_number", length = 100)
-    private String serialNumber;
+    private String serialNumber= UUID.randomUUID().toString();
     @Column(name = "total_price", columnDefinition = "Decimal(10,2)")
     private Double totalPrice;
     @Column(name = "status")

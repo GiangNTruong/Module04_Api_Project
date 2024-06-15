@@ -62,7 +62,7 @@ public class SecurityConfig {
                 }))
                 .sessionManagement(session-> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(cus->cus.requestMatchers("/api.myservice.com/v1/public/**").permitAll() // công khai
+                .authorizeHttpRequests(cus->cus.requestMatchers("/api.myservice.com/v1/**").permitAll() // công khai
                         .requestMatchers("/api.myservice.com/v1/auth/**").permitAll()
                         .requestMatchers("/api.myservice.com/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api.myservice.com/v1/pm/**").hasAnyRole("ADMIN","PM")

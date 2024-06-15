@@ -26,4 +26,10 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.findById(id).orElse(null);
     }
 
+
+    @Override
+    public List<Category> getSoldCategories() {
+        return categoryRepository.findSoldCategories();
+    }
+
 }

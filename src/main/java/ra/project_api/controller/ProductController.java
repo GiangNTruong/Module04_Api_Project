@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestController
-@RequestMapping("/api.myservice.com/v1/public/products")
+@RequestMapping("/api.myservice.com/v1/products")
 public class ProductController {
 
     @Autowired
@@ -45,22 +45,21 @@ public class ProductController {
         return productService.findLatestProducts();
     }
 
-    @GetMapping("/available")
+    @GetMapping("/sold")
     @PermitAll
     @ResponseStatus(HttpStatus.OK)
-    public Page<Product> getAvailableProducts(
+    public Page<Product> getSoldProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        return productService.findAvailableProducts(page, size, sortBy, sortDir);
+        return productService.findSoldProducts(page, size, sortBy, sortDir);
     }
 
-    @GetMapping("/search")
-    @PermitAll
-    @ResponseStatus(HttpStatus.OK)
-    public List<Product> searchProducts(
-            @RequestParam String keyword) {
-        return productService.searchProductsByNameOrDescription(keyword);
+    @GetMapping("/best-seller-products")
+    public ResponseEntity<List<Product>> getBestSellerProducts() {
+        List<Product> bestSellerProducts = productService.findTop3BestSellingProducts();
+        return new ResponseEntity<>(bestSellerProducts, HttpStatus.OK);
     }
+
 }

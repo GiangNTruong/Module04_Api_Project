@@ -13,7 +13,9 @@ public interface ProductService {
     Product findProductById(Long id);
     List<Product> findProductsByCategory(Category category);
     List<Product> findLatestProducts();
-    Page<Product> findAvailableProducts(int page, int size, String sortBy, String sortDir);
+    Page<Product> findSoldProducts(int page, int size, String sortBy, String sortDir);
     List<Product> searchProductsByNameOrDescription(String keyword);
+
+    List<Product> findTop3BestSellingProducts();
 }
 

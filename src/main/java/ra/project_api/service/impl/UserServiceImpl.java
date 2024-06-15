@@ -1,7 +1,10 @@
 package ra.project_api.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,14 +23,12 @@ import ra.project_api.security.principle.CustomerUserDetail;
 import ra.project_api.service.IUserService;
 
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements IUserService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
@@ -85,4 +86,44 @@ public class UserServiceImpl implements IUserService {
                 .roles(userDetail.getAuthorities())
                 .build();
     }
+
+    @Override
+    public Page<User> getUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<User> searchUsersByUsername(String username, Pageable pageable) {
+        return userRepository.findByUsernameContainingIgnoreCase(username, pageable);
+    }
+    @Override
+    public List<Role> getRoles() {
+        return roleRepository.findAll();
+    }
+
+    @Override
+    public User findUserById(Long id)
+    {
+        return userRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public User updateUserStatus(Long userId) {
+        User userRoleCheck = findUserById(userId);
+        if (userRoleCheck == null)
+        {
+            log.error("User not found");
+            throw new NoSuchElementException("Không thay đổi trạng thái được , không tồn tại id : " + userId);
+        }
+        if (userRoleCheck.getRoles().stream().anyMatch(role -> role.getRoleName() == RoleName.ROLE_ADMIN))
+        {
+            throw new RuntimeException("Can't block admin");
+        }
+        userRoleCheck.setStatus(!userRoleCheck.getStatus());
+        userRepository.save(userRoleCheck);
+        return userRoleCheck;
+    }
+
+
+
 }

@@ -15,7 +15,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCategory(Category category);
     List<Product> findTop5ByOrderByCreatedAtDesc();
-    Page<Product> findAllByStockQuantityGreaterThan(Integer stockQuantity, Pageable pageable);
+    @Query("SELECT DISTINCT p FROM Product p JOIN OrderDetail od ON p = od.compositeKey.product")
+    Page<Product> findSoldProducts(Pageable pageable);
     @Query("SELECT p FROM Product p WHERE LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Product> searchByNameOrDescription(@Param("keyword") String keyword);
+
+    @Query("SELECT p FROM Product p JOIN OrderDetail od ON p = od.compositeKey.product GROUP BY p ORDER BY SUM(od.orderQuantity) DESC")
+    List<Product> findTop3BestSellingProducts(Pageable pageable);
 }

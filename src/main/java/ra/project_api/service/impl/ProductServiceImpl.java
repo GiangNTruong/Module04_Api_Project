@@ -36,14 +36,21 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<Product> findAvailableProducts(int page, int size, String sortBy, String sortDir) {
+    public Page<Product> findSoldProducts(int page, int size, String sortBy, String sortDir) {
         Pageable pageable = PageRequest.of(page, size,
                 sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
-        return productRepository.findAllByStockQuantityGreaterThan(0, pageable);
+        return productRepository.findSoldProducts(pageable);
     }
+
 
     @Override
     public List<Product> searchProductsByNameOrDescription(String keyword) {
         return productRepository.searchByNameOrDescription(keyword);
     }
+
+    @Override
+    public List<Product> findTop3BestSellingProducts() {
+        return productRepository.findTop3BestSellingProducts(PageRequest.of(0, 3));
+    }
+
 }
