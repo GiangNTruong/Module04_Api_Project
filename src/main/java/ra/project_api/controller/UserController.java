@@ -222,12 +222,8 @@ public class UserController {
 
 //Lịch sử mua hàng
     @GetMapping("/history")
-    public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(@RequestHeader("Authorization") String token) {
-        // Remove "Bearer " from token
-        String jwt = token.substring(7);
-        // Get username from token
-        String username = jwtProvider.getUserNameFromToken(jwt);
-        // Find the user
+    public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(Principal principal) {
+        String username = principal.getName();
         User user = userService.findByUsernameOrEmail(username, username).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
         // Get the order history
         List<OrderHistoryResponse> orderHistory = orderService.getOrderHistoryByUser(user);
@@ -275,45 +271,25 @@ public class UserController {
 
     //Địa chỉ
     @GetMapping("/account/addresses")
-    public ResponseEntity<List<Address>> getUserAddresses(
-            @RequestHeader("Authorization") String token) {
-
-        // Extract username from token
-        String username = extractUsernameFromToken(token);
-
-        // Retrieve addresses by username
+    public ResponseEntity<List<Address>> getUserAddresses(Principal principal) {
+        String username = principal.getName();
         List<Address> addresses = addressService.getAddressesByUsername(username);
-
         return ResponseEntity.ok(addresses);
     }
 
-    private String extractUsernameFromToken(String token) {
-        String jwt = token.substring(7);
-        return jwtProvider.getUserNameFromToken(jwt);
-    }
 
     @GetMapping("/account/addresses/{addressId}")
     public ResponseEntity<Address> getAddressById(
             @RequestHeader("Authorization") String token,
             @PathVariable Long addressId) {
-
-        // Remove "Bearer " from token
         String jwt = token.substring(7);
-
-        // Get username from token
         String username = jwtProvider.getUserNameFromToken(jwt);
-
-        // Find the user by username
-        User user = userService.findByUsernameOrEmail(username, username)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
-
-        // Retrieve address by addressId using the service method
         try {
             Address address = addressService.getAddressById(addressId);
 
-            // Check if the retrieved address belongs to the authenticated user
+            // Kiểm tra xem địa chỉ được truy xuất có thuộc về người dùng được xác thực không
             if (!address.getUser().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Return 403 Forbidden if the address does not belong to the user
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Trả về 403 Bị cấm nếu địa chỉ không thuộc về người dùng
             }
 
             return ResponseEntity.ok(address);

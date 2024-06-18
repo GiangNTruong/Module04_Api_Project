@@ -57,6 +57,7 @@ public class ProductController {
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
+    // top 3 danh sách sản phẩm bán chạy nhất lấy số lượng quanlyti nhiều nhất trong orderDetail
     @GetMapping("/best-seller-products")
     public ResponseEntity<List<Product>> getBestSellerProducts() {
         List<Product> bestSellerProducts = productService.findTop3BestSellingProducts();
@@ -75,5 +76,9 @@ public class ProductController {
         return ResponseEntity.ok(responseWrapper);
     }
 
-
+    @GetMapping("/featured-products")
+    public ResponseEntity<List<Product>> getFeaturedProduct(){
+        List<Product> featuredProducts = productService.getTopFeaturedProducts(3);
+        return ResponseEntity.ok(featuredProducts);
+    }
 }

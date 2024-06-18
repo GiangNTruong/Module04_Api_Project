@@ -20,7 +20,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Product> searchByNameOrDescription(String keyword);
 
+
     @Query("SELECT p FROM Product p JOIN OrderDetail od ON p = od.compositeKey.product GROUP BY p ORDER BY SUM(od.orderQuantity) DESC")
     List<Product> findTop3BestSellingProducts(Pageable pageable);
     Page<Product> findAll(Pageable pageable);
+
+    //dách sách sản phẩm nổi bật
+    @Query("select p from Product p join  OrderDetail od on p.productId=od.compositeKey.product.productId"+
+    " group by p.productId"+" order by SUM(od.unitPrice * od.orderQuantity) DESC")
+    List<Product> findTopProductsByRevenue(Pageable pageable);
 }

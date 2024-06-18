@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ra.project_api.constrants.EHttpStatus;
 import ra.project_api.dto.response.ResponseWrapper;
+import ra.project_api.exception.InsufficientStockException;
 
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
@@ -51,6 +52,16 @@ public class ApiControllerAdvice {
                 .data(errors)
                 .build();
 
+        return new ResponseEntity<>(responseWrapper, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ResponseWrapper<String>> handleInsufficientStockException(InsufficientStockException e) {
+        ResponseWrapper<String> responseWrapper = ResponseWrapper.<String>builder()
+                .eHttpStatus(EHttpStatus.FAILED)
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .data(e.getMessage())
+                .build();
         return new ResponseEntity<>(responseWrapper, HttpStatus.BAD_REQUEST);
     }
 }

@@ -10,6 +10,7 @@ import ra.project_api.dto.request.UpdateOrderStatusDTO;
 import ra.project_api.dto.response.OrderDetailDTO;
 import ra.project_api.dto.response.OrderDetailsResponseDTO;
 import ra.project_api.dto.response.OrderHistoryResponse;
+import ra.project_api.exception.InsufficientStockException;
 import ra.project_api.model.*;
 import ra.project_api.repository.IOrderRepository;
 import ra.project_api.repository.IUserRepository;
@@ -50,6 +51,11 @@ public class OrderServiceImpl implements IOrderService {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new NoSuchElementException("Product not found"));
 
+            // Kiểm tra số lượng tồn kho
+            if (item.getQuantity() > product.getStockQuantity()) {
+                throw new InsufficientStockException("Not enough stock for product: " + product.getProductName()+" and  still: "+product.getStockQuantity());
+            }
+
             // Sử dụng @Builder để khởi tạo OrderDetail
             OrderDetail orderDetail = OrderDetail.builder()
                     .compositeKey(new OrderDetailCompositeKey(savedOrder, product))
@@ -60,6 +66,10 @@ public class OrderServiceImpl implements IOrderService {
 
             // Lưu chi tiết đơn hàng vào cơ sở dữ liệu
             orderDetailRepository.save(orderDetail);
+
+            // Giảm số lượng tồn kho của sản phẩm
+            product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
+            productRepository.save(product);
         }
     }
 
@@ -77,7 +87,6 @@ public class OrderServiceImpl implements IOrderService {
 
         List<OrderDetailDTO> orderDetailDTOs = mapOrderDetailsToDTOs(orderDetails);
 
-        // Map Order to OrderDetailsResponseDTO and set OrderDetailDTOs using Builder
         return OrderDetailsResponseDTO.builder()
                 .order(order)
                 .orderDetails(orderDetailDTOs)
@@ -147,7 +156,6 @@ public class OrderServiceImpl implements IOrderService {
 
         List<OrderDetailDTO> orderDetailDTOs = mapOrderDetailsToDTOs(orderDetails);
 
-        // Map Order to OrderDetailsResponseDTO and set OrderDetailDTOs using Builder
         return OrderDetailsResponseDTO.builder()
                 .order(order)
                 .orderDetails(orderDetailDTOs)

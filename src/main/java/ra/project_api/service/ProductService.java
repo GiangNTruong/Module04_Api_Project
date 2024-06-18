@@ -21,5 +21,6 @@ public interface ProductService {
     Product update(Product product);
     Product saveProduct(Product product);
     Page<Product> findAll(Pageable pageable);
+    List<Product> getTopFeaturedProducts (int limit);
 }
 

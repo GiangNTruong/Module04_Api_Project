@@ -23,4 +23,7 @@ public class OrderDetail
     private Double unitPrice;
     @Column(name = "order_quantity") // check>0
     private Integer orderQuantity;
+    public Double getRevenue() {
+        return unitPrice * orderQuantity;
+    }
 }

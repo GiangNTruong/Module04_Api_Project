@@ -212,6 +212,7 @@ public class AdminController {
 
 
     // Đơn hàng
+    //Danh sách tất cả đơn hàng - Bắt buộc
     @GetMapping("/orders")
     public ResponseEntity<ResponseWrapper<List<Order>>> getAllOrders() {
         List<Order> orders = orderService.getAllOrders();
@@ -223,6 +224,7 @@ public class AdminController {
         return ResponseEntity.ok(responseWrapper);
     }
 
+    //Chi tiết đơn hàng
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<ResponseWrapper<OrderDetailsResponseDTO>> getOrderById(@PathVariable Long orderId) {
         OrderDetailsResponseDTO orderDetails = orderService.getOrderById(orderId);
@@ -233,6 +235,8 @@ public class AdminController {
                 .build();
         return ResponseEntity.ok(responseWrapper);
     }
+
+//Danh sách đơn hàng theo trạng thái - Bắt buộc
     @GetMapping("/orders/status/{orderStatus}")
     public ResponseEntity<ResponseWrapper<List<Order>>> getOrdersByStatus(@PathVariable OrderStatus orderStatus) {
         List<Order> orders = orderService.getOrdersByStatus(orderStatus);
@@ -244,6 +248,8 @@ public class AdminController {
         return ResponseEntity.ok(responseWrapper);
     }
 
+
+// Cập nhật trạng thái đơn hàng (payload : orderStatus) - Bắt buộc
     @PutMapping("/orders/{orderId}/status")
     public ResponseEntity<ResponseWrapper<Order>> updateOrderStatus(@PathVariable Long orderId, @RequestBody UpdateOrderStatusDTO updateOrderStatusDTO) {
         Order updatedOrder = orderService.updateOrderStatus(orderId, updateOrderStatusDTO);

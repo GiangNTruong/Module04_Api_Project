@@ -74,5 +74,11 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findAll(pageable);
     }
 
+    @Override
+    public List<Product> getTopFeaturedProducts(int limit) {
+        Pageable pageable = PageRequest.of(0,limit);
+        return productRepository.findTopProductsByRevenue(pageable);
+    }
+
 
 }
