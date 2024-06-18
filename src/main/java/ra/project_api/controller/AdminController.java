@@ -233,7 +233,6 @@ public class AdminController {
                 .build();
         return ResponseEntity.ok(responseWrapper);
     }
-
     @GetMapping("/orders/status/{orderStatus}")
     public ResponseEntity<ResponseWrapper<List<Order>>> getOrdersByStatus(@PathVariable OrderStatus orderStatus) {
         List<Order> orders = orderService.getOrdersByStatus(orderStatus);

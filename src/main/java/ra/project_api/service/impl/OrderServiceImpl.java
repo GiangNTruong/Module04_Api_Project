@@ -7,6 +7,7 @@ import ra.project_api.constrants.OrderStatus;
 import ra.project_api.dto.request.CheckoutRequestDTO;
 import ra.project_api.dto.request.OrderDetailRequestDTO;
 import ra.project_api.dto.request.UpdateOrderStatusDTO;
+import ra.project_api.dto.response.OrderDetailDTO;
 import ra.project_api.dto.response.OrderDetailsResponseDTO;
 import ra.project_api.dto.response.OrderHistoryResponse;
 import ra.project_api.model.*;
@@ -73,9 +74,15 @@ public class OrderServiceImpl implements IOrderService {
                 .orElseThrow(() -> new NoSuchElementException("Order not found with id: " + orderId));
 
         List<OrderDetail> orderDetails = orderDetailRepository.findByCompositeKeyOrder(order);
-        return new OrderDetailsResponseDTO(order, orderDetails);
-    }
 
+        List<OrderDetailDTO> orderDetailDTOs = mapOrderDetailsToDTOs(orderDetails);
+
+        // Map Order to OrderDetailsResponseDTO and set OrderDetailDTOs using Builder
+        return OrderDetailsResponseDTO.builder()
+                .order(order)
+                .orderDetails(orderDetailDTOs)
+                .build();
+    }
     @Override
     public List<Order> getOrdersByStatus(OrderStatus orderStatus) {
         return orderRepository.findByStatus(orderStatus);
@@ -138,11 +145,13 @@ public class OrderServiceImpl implements IOrderService {
 
         List<OrderDetail> orderDetails = orderDetailRepository.findByCompositeKeyOrder(order);
 
-        // Map entities to DTO using ModelMapper
-        OrderDetailsResponseDTO responseDTO = modelMapper.map(order, OrderDetailsResponseDTO.class);
-        responseDTO.setOrderDetails(orderDetails);
+        List<OrderDetailDTO> orderDetailDTOs = mapOrderDetailsToDTOs(orderDetails);
 
-        return responseDTO;
+        // Map Order to OrderDetailsResponseDTO and set OrderDetailDTOs using Builder
+        return OrderDetailsResponseDTO.builder()
+                .order(order)
+                .orderDetails(orderDetailDTOs)
+                .build();
     }
 
     @Override
@@ -160,5 +169,17 @@ public class OrderServiceImpl implements IOrderService {
         } else {
             throw new IllegalStateException("Order cannot be cancelled at this time");
         }
+    }
+
+
+
+    private List<OrderDetailDTO> mapOrderDetailsToDTOs(List<OrderDetail> orderDetails) {
+        return orderDetails.stream()
+                .map(orderDetail -> new OrderDetailDTO(
+                        orderDetail.getCompositeKey().getProduct().getProductName(),
+                        orderDetail.getUnitPrice(),
+                        orderDetail.getOrderQuantity()
+                ))
+                .collect(Collectors.toList());
     }
 }

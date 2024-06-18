@@ -245,13 +245,18 @@ public class UserController {
     }
 
     @GetMapping("/history/{serialNumber}")
-    public ResponseEntity<OrderDetailsResponseDTO> getOrderDetailsBySerialNumber(
+    public ResponseEntity<ResponseWrapper<OrderDetailsResponseDTO>> getOrderDetailsBySerialNumber(
             @PathVariable String serialNumber,
             Principal principal) {
 
         String username = principal.getName();
         OrderDetailsResponseDTO orderDetails = orderService.getOrderDetailsBySerialNumber(serialNumber, username);
-        return ResponseEntity.ok(orderDetails);
+        ResponseWrapper<OrderDetailsResponseDTO> responseWrapper = ResponseWrapper.<OrderDetailsResponseDTO>builder()
+                .eHttpStatus(EHttpStatus.SUCCESS)
+                .statusCode(HttpStatus.OK.value())
+                .data(orderDetails)
+                .build();
+        return ResponseEntity.ok(responseWrapper);
     }
 
     @PutMapping("/history/{orderId}/cancel")
