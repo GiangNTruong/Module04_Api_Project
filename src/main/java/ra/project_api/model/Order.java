@@ -43,9 +43,18 @@ public class Order
     private Date createdAt = new Date();
     @Column(name = "received_at")
     @DateTimeFormat(pattern = "dd/MM/yyyy")
-    private Date receivedAt;
+    @Builder.Default
+    private Date receivedAt = calculateDefaultReceivedAt();
 
     @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     private User user;
+
+
+    // Helper method to calculate default receivedAt
+    private static Date calculateDefaultReceivedAt() {
+        long fourDaysInMillis = 4 * 24 * 60 * 60 * 1000L; // 4 days in milliseconds
+        long receivedAtTimeInMillis = System.currentTimeMillis() + fourDaysInMillis;
+        return new Date(receivedAtTimeInMillis);
+    }
 }

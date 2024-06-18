@@ -1,23 +1,32 @@
 package ra.project_api.service.impl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import ra.project_api.constrants.RoleName;
+import ra.project_api.dto.request.ChangePasswordRequest;
 import ra.project_api.dto.request.SignInRequest;
 import ra.project_api.dto.request.SignUpRequest;
+import ra.project_api.dto.request.UserRequestDTO;
 import ra.project_api.dto.response.JWTResponse;
+import ra.project_api.dto.response.UserResponseDTO;
 import ra.project_api.model.Role;
 import ra.project_api.model.User;
+import ra.project_api.model.WishList;
 import ra.project_api.repository.IRoleRepository;
 import ra.project_api.repository.IUserRepository;
+import ra.project_api.repository.WishListRepository;
 import ra.project_api.security.jwt.JwtProvider;
 import ra.project_api.security.principle.CustomerUserDetail;
 import ra.project_api.service.IUserService;
@@ -36,7 +45,7 @@ public class UserServiceImpl implements IUserService {
     private final IRoleRepository roleRepository;
     private final ModelMapper modelMapper;
     private final JwtProvider jwtProvider;
-
+    private final WishListRepository wishListRepository;
 
 
     @Override
@@ -122,6 +131,34 @@ public class UserServiceImpl implements IUserService {
         userRoleCheck.setStatus(!userRoleCheck.getStatus());
         userRepository.save(userRoleCheck);
         return userRoleCheck;
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequest changePasswordRequest) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+
+        if (!passwordEncoder.matches(changePasswordRequest.getOldPass(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        if (!changePasswordRequest.getNewPass().equals(changePasswordRequest.getConfirmNewPass())) {
+            throw new IllegalArgumentException("New password and confirm password do not match");
+        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPass()));
+        user.setUpdatedAt(new Date());
+        userRepository.save(user);
+    }
+
+
+    @Override
+    public Optional<User> findByUsernameOrEmail(String username, String email) {
+        return userRepository.findByUsernameOrEmail(username, email);
+    }
+
+    @Override
+    public User updateUser(User user) {
+        return userRepository.save(user);
     }
 
 

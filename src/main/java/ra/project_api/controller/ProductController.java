@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ra.project_api.constrants.EHttpStatus;
+import ra.project_api.dto.response.ResponseWrapper;
 import ra.project_api.model.Category;
 import ra.project_api.model.Product;
 import ra.project_api.service.CategoryService;
@@ -27,33 +29,32 @@ public class ProductController {
     private CategoryService categoryService;
 
 
-    @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id) {
-        return productService.findProductById(id);
-    }
 
     @GetMapping("/categories/{categoryId}")
-    @ResponseStatus(HttpStatus.OK)
-    public List<Product> getProductsByCategory(@PathVariable("categoryId") Long categoryId) {
+    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable("categoryId") Long categoryId) {
         Category category = categoryService.findById(categoryId);
-        return productService.findProductsByCategory(category);
+        if (category != null) {
+            List<Product> products = productService.findProductsByCategory(category);
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
-    @GetMapping("/latest")
-    @PermitAll
-    @ResponseStatus(HttpStatus.OK)
-    public List<Product> getLatestProducts() {
-        return productService.findLatestProducts();
+
+    @GetMapping("/new-products")
+    public ResponseEntity<List<Product>> getLatestProducts() {
+        List<Product> products = productService.findLatestProducts();
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     @GetMapping("/sold")
-    @PermitAll
-    @ResponseStatus(HttpStatus.OK)
-    public Page<Product> getSoldProducts(
+    public ResponseEntity<Page<Product>> getSoldProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        return productService.findSoldProducts(page, size, sortBy, sortDir);
+        Page<Product> products = productService.findSoldProducts(page, size, sortBy, sortDir);
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     @GetMapping("/best-seller-products")
@@ -61,5 +62,18 @@ public class ProductController {
         List<Product> bestSellerProducts = productService.findTop3BestSellingProducts();
         return new ResponseEntity<>(bestSellerProducts, HttpStatus.OK);
     }
+
+
+    @GetMapping("/search")
+    public ResponseEntity<ResponseWrapper<List<Product>>> searchProducts(@RequestParam("keyword") String keyword) {
+        List<Product> products = productService.searchProductsByNameOrDescription(keyword);
+        ResponseWrapper<List<Product>> responseWrapper = ResponseWrapper.<List<Product>>builder()
+                .eHttpStatus(EHttpStatus.SUCCESS)
+                .statusCode(HttpStatus.OK.value())
+                .data(products)
+                .build();
+        return ResponseEntity.ok(responseWrapper);
+    }
+
 
 }

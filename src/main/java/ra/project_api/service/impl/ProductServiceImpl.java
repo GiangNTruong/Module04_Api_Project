@@ -53,4 +53,26 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findTop3BestSellingProducts(PageRequest.of(0, 3));
     }
 
+    @Override
+    public void deleteProduct(Long productId) {
+        productRepository.deleteById(productId);
+    }
+
+    @Override
+    public Product update(Product product) {
+        productRepository.findById(product.getProductId()).orElseThrow(()->new NoSuchElementException("Khong ton tai Id "));
+        return productRepository.save(product);
+    }
+
+    @Override
+    public Product saveProduct(Product product) {
+        return productRepository.save(product);
+    }
+
+    @Override
+    public Page<Product> findAll(Pageable pageable) {
+        return productRepository.findAll(pageable);
+    }
+
+
 }

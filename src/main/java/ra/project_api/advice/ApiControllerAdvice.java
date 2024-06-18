@@ -1,11 +1,10 @@
 package ra.project_api.advice;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import ra.project_api.constrants.EHttpStatus;
 import ra.project_api.dto.response.ResponseWrapper;
 
@@ -15,7 +14,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
-public class ApiControllerAdvice extends ResponseEntityExceptionHandler {
+public class ApiControllerAdvice {
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> doHandler(RuntimeException e) {
         Map<String, String> map = new HashMap<>();
@@ -40,5 +40,17 @@ public class ApiControllerAdvice extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(responseWrapper, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ResponseWrapper<Map<String, String>>> handleValidException(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(err -> errors.put(err.getField(), err.getDefaultMessage()));
 
+        ResponseWrapper<Map<String, String>> responseWrapper = ResponseWrapper.<Map<String, String>>builder()
+                .eHttpStatus(EHttpStatus.FAILED)
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .data(errors)
+                .build();
+
+        return new ResponseEntity<>(responseWrapper, HttpStatus.BAD_REQUEST);
+    }
 }

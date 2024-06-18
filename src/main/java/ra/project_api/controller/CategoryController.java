@@ -13,19 +13,11 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    @GetMapping
-    public List<Category> getAllCategories() {
-        return categoryService.findAll();
-    }
-
-    @GetMapping("/{id}")
-    public Category getCategoryById(@PathVariable Long id) {
-        return categoryService.findById(id);
-    }
 
     @GetMapping("/sold-categories")
     @ResponseStatus(HttpStatus.OK)
     public List<Category> getSoldCategories() {
         return categoryService.getSoldCategories();
     }
+
 }

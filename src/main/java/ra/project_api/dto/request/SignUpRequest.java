@@ -1,9 +1,11 @@
 package ra.project_api.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ra.project_api.validation.UserNameUnique;
 
 import java.util.Date;
 import java.util.List;
@@ -12,6 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 @Data
 public class SignUpRequest {
+    @NotBlank
+    @UserNameUnique
     private String username;
     private String email;
     private String fullName;

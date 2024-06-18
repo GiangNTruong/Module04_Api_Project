@@ -11,7 +11,7 @@ public class UserResponseDTO {
     private Long userId;
     private String username;
     private String email;
-    private String fullname;
+    private String fullName;
     private Boolean status;
     private String phone;
     private String address;

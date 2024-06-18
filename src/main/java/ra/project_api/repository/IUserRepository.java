@@ -15,10 +15,12 @@ import java.util.Optional;
 public interface IUserRepository extends JpaRepository<User,Long> {
 //    @Query("select u from User u where u.username=?1 or u.email=?1")
 //   User loadByUsername(String username);
+Optional<User> findByUsername(String username);
     Optional<User> findByUsernameOrEmail(String username, String email);
     Page<User> findAll(Pageable pageable);
     Page<User> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
-    @Modifying
-    @Query("update User u set u.status = :status where u.userId = :userId")
-    void updateUserStatus(@Param("userId") Long userId, @Param("status") Boolean status);
+
+    //check trùng
+    boolean existsByUsername(String username);
+
 }

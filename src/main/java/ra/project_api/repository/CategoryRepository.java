@@ -1,6 +1,8 @@
 package ra.project_api.repository;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,4 +17,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             "JOIN Product p ON c.categoryId = p.category.categoryId " +
             "JOIN OrderDetail od ON p.productId = od.compositeKey.product.productId")
     List<Category> findSoldCategories();
+
+    Page<Category> findAll(Pageable pageable);
 }
