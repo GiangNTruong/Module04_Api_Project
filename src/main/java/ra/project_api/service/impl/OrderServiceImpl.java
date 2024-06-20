@@ -19,6 +19,7 @@ import ra.project_api.repository.ProductRepository;
 import ra.project_api.service.IOrderService;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -42,8 +43,6 @@ public class OrderServiceImpl implements IOrderService {
         Order order = modelMapper.map(checkoutRequest, Order.class);
         order.setUser(user);
         order.setStatus(OrderStatus.WAITING);
-
-        // Lưu đơn hàng vào cơ sở dữ liệu
         Order savedOrder = orderRepository.save(order);
 
         // Tạo và lưu các đối tượng OrderDetail từ checkoutRequest
@@ -51,12 +50,11 @@ public class OrderServiceImpl implements IOrderService {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new NoSuchElementException("Product not found"));
 
-            // Kiểm tra số lượng tồn kho
+
             if (item.getQuantity() > product.getStockQuantity()) {
                 throw new InsufficientStockException("Not enough stock for product: " + product.getProductName()+" and  still: "+product.getStockQuantity());
             }
 
-            // Sử dụng @Builder để khởi tạo OrderDetail
             OrderDetail orderDetail = OrderDetail.builder()
                     .compositeKey(new OrderDetailCompositeKey(savedOrder, product))
                     .name(product.getProductName())
@@ -64,10 +62,9 @@ public class OrderServiceImpl implements IOrderService {
                     .orderQuantity(item.getQuantity())
                     .build();
 
-            // Lưu chi tiết đơn hàng vào cơ sở dữ liệu
             orderDetailRepository.save(orderDetail);
 
-            // Giảm số lượng tồn kho của sản phẩm
+            // giảm quantity sản phẩm
             product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
             productRepository.save(product);
         }
@@ -83,10 +80,12 @@ public class OrderServiceImpl implements IOrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementException("Order not found with id: " + orderId));
 
+        // Tìm các chi tiết đơn hàng của đơn hàng này
         List<OrderDetail> orderDetails = orderDetailRepository.findByCompositeKeyOrder(order);
 
         List<OrderDetailDTO> orderDetailDTOs = mapOrderDetailsToDTOs(orderDetails);
 
+        // Xây dựng đối tượng OrderDetailsResponseDTO để trả về
         return OrderDetailsResponseDTO.builder()
                 .order(order)
                 .orderDetails(orderDetailDTOs)
@@ -101,9 +100,27 @@ public class OrderServiceImpl implements IOrderService {
     public Order updateOrderStatus(Long orderId, UpdateOrderStatusDTO updateOrderStatusDTO) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementException("Order not found"));
+        //don hàng hien tại
+        OrderStatus currentStatus = order.getStatus();
 
-        order.setStatus(updateOrderStatusDTO.getOrderStatus());
+      // hàng mới
+        OrderStatus newStatus = updateOrderStatusDTO.getOrderStatus();
 
+        if (newStatus == OrderStatus.CANCEL || newStatus == OrderStatus.DENIED) {
+
+            if (currentStatus != OrderStatus.CANCEL && currentStatus != OrderStatus.DENIED) {
+                // cộng lại số lượng sản phẩm vào kho
+                updateProductStock(order, 1);
+            }
+        } else {
+            if (currentStatus == OrderStatus.CANCEL || currentStatus == OrderStatus.DENIED) {
+                // Trừ đi số lượng sản phẩm từ kho
+                updateProductStock(order, -1);
+            }
+        }
+
+
+        order.setStatus(newStatus);
         return orderRepository.save(order);
     }
 
@@ -168,17 +185,48 @@ public class OrderServiceImpl implements IOrderService {
         Order order = orderRepository.findByOrderIdAndUser_Username(orderId, username)
                 .orElseThrow(() -> new NoSuchElementException("Order not found"));
 
-        // Check if order status is pending confirmation
+        // Check if order is already cancelled
+        if (order.getStatus() == OrderStatus.CANCEL) {
+            throw new IllegalStateException("Order is already cancelled");
+        }
+
+        // Check if order status is WAITING
         if (order.getStatus() == OrderStatus.WAITING) {
             // Update order status to cancelled
             order.setStatus(OrderStatus.CANCEL);
+
+            // Update product stock
+            updateProductStock(order, 1);
+
             // Save updated order
             orderRepository.save(order);
         } else {
-            throw new IllegalStateException("Order cannot be cancelled at this time");
+            throw new IllegalStateException("Order can only be cancelled if it is in WAITING status");
         }
     }
 
+
+
+    private void updateProductStock(Order order, int quantityModifier) {
+
+        List<OrderDetail> orderDetails = orderDetailRepository.findByCompositeKeyOrder(order);
+
+        // duyệt qua từng chi tiết đơn hàng để cập nhật số lượng sản phẩm
+        for (OrderDetail orderDetail : orderDetails) {
+            Product product = orderDetail.getCompositeKey().getProduct();
+            int quantityChange = orderDetail.getOrderQuantity() * quantityModifier;
+
+            // Cập nhật stockQuantity của sản phẩm
+            product.setStockQuantity(product.getStockQuantity() + quantityChange);
+            productRepository.save(product);
+        }
+    }
+
+   @Override
+    public Double getTotalRevenueBetweenDates(Date from, Date to) {
+        // Gọi phương thức từ repository để tính tổng doanh thu
+        return orderRepository.calculateTotalRevenueBetweenDates(from, to);
+    }
 
 
     private List<OrderDetailDTO> mapOrderDetailsToDTOs(List<OrderDetail> orderDetails) {

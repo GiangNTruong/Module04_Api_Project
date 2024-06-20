@@ -20,6 +20,7 @@ import ra.project_api.dto.request.SignInRequest;
 import ra.project_api.dto.request.SignUpRequest;
 import ra.project_api.dto.request.UserRequestDTO;
 import ra.project_api.dto.response.JWTResponse;
+import ra.project_api.dto.response.ListUserResponse;
 import ra.project_api.dto.response.UserResponseDTO;
 import ra.project_api.model.Role;
 import ra.project_api.model.User;
@@ -86,7 +87,7 @@ public class UserServiceImpl implements IUserService {
         }
         CustomerUserDetail userDetail  = (CustomerUserDetail) authentication.getPrincipal();
         String accessToken = jwtProvider.generateAccessToken(userDetail);
-        String refreshToken = jwtProvider.generateAccessToken(userDetail);
+        String refreshToken = jwtProvider.generateRefreshToken(userDetail);
         return JWTResponse.builder()
                 .username(userDetail.getUsername())
                 .fullName(userDetail.getFullName())
@@ -97,14 +98,33 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Page<User> getUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
+    public ListUserResponse getUsers(Pageable pageable) {
+        Page<User> usersPage = userRepository.findAll(pageable);
+        return convertToUserResponse(usersPage);
     }
 
     @Override
-    public Page<User> searchUsersByUsername(String username, Pageable pageable) {
-        return userRepository.findByUsernameContainingIgnoreCase(username, pageable);
+    public ListUserResponse searchUsersByUsername(String username, Pageable pageable) {
+        Page<User> usersPage = userRepository.findByUsernameContainingIgnoreCase(username, pageable);
+        return convertToUserResponse(usersPage);
     }
+
+
+    private ListUserResponse convertToUserResponse(Page<User> usersPage) {
+        List<UserResponseDTO> userResponseDTOs = usersPage.getContent().stream()
+                .map(user -> modelMapper.map(user, UserResponseDTO.class))
+                .collect(Collectors.toList());
+
+        return ListUserResponse.builder()
+                .content(userResponseDTOs)
+                .totalElements(usersPage.getTotalElements())
+                .totalPages(usersPage.getTotalPages())
+                .size(usersPage.getSize())
+                .number(usersPage.getNumber())
+                .sort(usersPage.getSort())
+                .build();
+    }
+
     @Override
     public List<Role> getRoles() {
         return roleRepository.findAll();
@@ -134,8 +154,9 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public void changePassword(Long userId, ChangePasswordRequest changePasswordRequest) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+    public void changePassword(String username, ChangePasswordRequest changePasswordRequest) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
 
         if (!passwordEncoder.matches(changePasswordRequest.getOldPass(), user.getPassword())) {
             throw new IllegalArgumentException("Old password is incorrect");
@@ -161,6 +182,32 @@ public class UserServiceImpl implements IUserService {
         return userRepository.save(user);
     }
 
+    @Override
+    public UserResponseDTO addRoleToUser(Long userId, Long roleId) {
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new RuntimeException("ID không tìm thấy"));
+        Role role = roleRepository.findById(roleId).orElseThrow(() ->
+                new RuntimeException("ID không tìm thấy"));
+        if (user.getRoles().stream().anyMatch(r -> Objects.equals(r.getRoleId(), role.getRoleId()))) {
+            throw new RuntimeException("Đã có quyền này rồi");
+        }
+        user.getRoles().add(role);
+        return modelMapper.map(userRepository.save(user), UserResponseDTO.class);
+    }
 
+    @Override
+    public UserResponseDTO removeRoleFromUser(Long userId, Long roleId) {
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new RuntimeException("User ID không tìm thấy"));
+        Role role = roleRepository.findById(roleId).orElseThrow(() ->
+                new RuntimeException("Role ID không tìm thấy"));
 
+        if (user.getRoles().stream().noneMatch(r -> Objects.equals(r.getRoleId(), role.getRoleId()))) {
+            throw new RuntimeException("User không có quyền này");
+        }
+
+        user.getRoles().remove(role);
+        user = userRepository.save(user);
+        return modelMapper.map(user, UserResponseDTO.class);
+    }
 }

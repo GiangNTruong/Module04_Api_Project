@@ -6,11 +6,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import ra.project_api.dto.response.ListProductSoldResponse;
 import ra.project_api.model.Category;
 import ra.project_api.model.Product;
 import ra.project_api.repository.ProductRepository;
 import ra.project_api.service.ProductService;
 
+import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -36,10 +38,22 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<Product> findSoldProducts(int page, int size, String sortBy, String sortDir) {
+    public ListProductSoldResponse findSoldProducts(int page, int size, String sortBy, String sortDir) {
         Pageable pageable = PageRequest.of(page, size,
                 sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
-        return productRepository.findSoldProducts(pageable);
+
+        Page<Product> productPage = productRepository.findSoldProducts(pageable);
+
+        ListProductSoldResponse response = ListProductSoldResponse.builder()
+                .content(productPage.getContent())
+                .totalElements(productPage.getTotalElements())
+                .totalPages(productPage.getTotalPages())
+                .size(productPage.getSize())
+                .number(productPage.getNumber())
+                .sort(productPage.getSort())
+                .build();
+
+        return response;
     }
 
 
@@ -80,5 +94,9 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findTopProductsByRevenue(pageable);
     }
 
-
+    @Override
+    public List<Product> getTopBestSellingProducts(Date from, Date to, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return productRepository.findTopBestSellingProductsBetweenDates(from, to, pageable);
+    }
 }

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ra.project_api.constrants.EHttpStatus;
+import ra.project_api.dto.response.ListProductSoldResponse;
 import ra.project_api.dto.response.ResponseWrapper;
 import ra.project_api.model.Category;
 import ra.project_api.model.Product;
@@ -48,15 +49,15 @@ public class ProductController {
     }
 
     @GetMapping("/sold")
-    public ResponseEntity<Page<Product>> getSoldProducts(
+    public ResponseEntity<ListProductSoldResponse> getSoldProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        Page<Product> products = productService.findSoldProducts(page, size, sortBy, sortDir);
+
+        ListProductSoldResponse products = productService.findSoldProducts(page, size, sortBy, sortDir);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
-
     // top 3 danh sách sản phẩm bán chạy nhất lấy số lượng quanlyti nhiều nhất trong orderDetail
     @GetMapping("/best-seller-products")
     public ResponseEntity<List<Product>> getBestSellerProducts() {
@@ -76,6 +77,8 @@ public class ProductController {
         return ResponseEntity.ok(responseWrapper);
     }
 
+
+    //danh sách trang nổi bật là tổng doanh thu cao nhất
     @GetMapping("/featured-products")
     public ResponseEntity<List<Product>> getFeaturedProduct(){
         List<Product> featuredProducts = productService.getTopFeaturedProducts(3);

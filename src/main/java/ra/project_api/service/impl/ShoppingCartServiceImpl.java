@@ -48,6 +48,7 @@ public class ShoppingCartServiceImpl implements IShoppingCartService {
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public void addToCart(String username, AddToCartRequestDTO requestDTO) {
         User user = userRepository.findByUsernameOrEmail(username, username)
@@ -85,19 +86,20 @@ public class ShoppingCartServiceImpl implements IShoppingCartService {
     }
 
     @Override
-
     public void updateCartItem(Long cartItemId, String username, Integer quantity) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        Optional<ShoppingCart> optionalCartItem = shoppingCartRepository.findByIdAndUser(cartItemId, user);
-        if (optionalCartItem.isPresent()) {
-            ShoppingCart cartItem = optionalCartItem.get();
-            cartItem.setOrderQuantity(quantity);
-            shoppingCartRepository.save(cartItem);
-        } else {
-            throw new EntityNotFoundException("Cart item not found for user");
+        ShoppingCart cartItem = shoppingCartRepository.findByIdAndUser(cartItemId, user)
+                .orElseThrow(() -> new EntityNotFoundException("Cart item not found for user"));
+
+        Product product = cartItem.getProduct();
+        if (quantity > product.getStockQuantity()) {
+            throw new IllegalArgumentException("Quantity exceeds stock quantity");// số lượng lớn hơn số lượng trong kho
         }
+
+        cartItem.setOrderQuantity(quantity);
+        shoppingCartRepository.save(cartItem);
     }
 
     @Override

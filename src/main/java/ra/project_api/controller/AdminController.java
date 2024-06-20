@@ -3,13 +3,15 @@ package ra.project_api.controller;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ra.project_api.constrants.EHttpStatus;
 import ra.project_api.constrants.OrderStatus;
+import ra.project_api.dto.request.CategoryDTO;
 import ra.project_api.dto.request.UpdateOrderStatusDTO;
+import ra.project_api.dto.response.ListUserResponse;
 import ra.project_api.dto.response.OrderDetailsResponseDTO;
 import ra.project_api.dto.response.ResponseWrapper;
 import ra.project_api.dto.response.UserResponseDTO;
@@ -19,10 +21,9 @@ import ra.project_api.service.IOrderService;
 import ra.project_api.service.IUserService;
 import ra.project_api.service.ProductService;
 
-import java.util.HashMap;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+
 import java.util.stream.Collectors;
 
 @RestController
@@ -36,34 +37,30 @@ public class AdminController {
     private final ProductService productService;
     private final IOrderService orderService;
     @GetMapping("/users")
-    public ResponseEntity<ResponseWrapper<Page<UserResponseDTO>>> getUsers(
+    public ResponseEntity<ResponseWrapper<ListUserResponse>> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "userId") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
 
-        // Đunúng asc thì sắp xếp tăng dần còn không thì giảm dần
-        Sort sort = sortDirection.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        // Sắp xếp tăng dần nếu sortDirection là "asc", ngược lại thì giảm dần
+        Sort sort = sortDirection.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<User> usersPage = userService.getUsers(pageable);
-// Chuyển đổi danh sách các user thành danh sách các UserResponseDTO
-        List<UserResponseDTO> userResponseDTOs = usersPage.getContent().stream()
-                .map(user -> modelMapper.map(user, UserResponseDTO.class))
-                .collect(Collectors.toList());// Thu thập kết quả thành một danh sách
 
-        Page<UserResponseDTO> userResponseDTOPage = new PageImpl<>(userResponseDTOs, pageable, usersPage.getTotalElements());
+        ListUserResponse usersResponse = userService.getUsers(pageable);
 
-        ResponseWrapper<Page<UserResponseDTO>> responseWrapper = ResponseWrapper.<Page<UserResponseDTO>>builder()
+        ResponseWrapper<ListUserResponse> responseWrapper = ResponseWrapper.<ListUserResponse>builder()
                 .eHttpStatus(EHttpStatus.SUCCESS)
                 .statusCode(HttpStatus.OK.value())
-                .data(userResponseDTOPage)
+                .data(usersResponse)
                 .build();
 
         return ResponseEntity.ok(responseWrapper);
     }
-
     @GetMapping("/users/search")
-    public ResponseEntity<Page<User>> searchUsers(
+    public ResponseEntity<ResponseWrapper<ListUserResponse>> searchUsers(
             @RequestParam String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -72,9 +69,15 @@ public class AdminController {
 
         Sort sort = sortDirection.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<User> users = userService.searchUsersByUsername(username, pageable);
+        ListUserResponse userResponse = userService.searchUsersByUsername(username,pageable);
+        ResponseWrapper<ListUserResponse> responseWrapper = ResponseWrapper.<ListUserResponse>builder()
+                .eHttpStatus(EHttpStatus.SUCCESS)
+                .statusCode(HttpStatus.OK.value())
+                .data(userResponse)
+                .build();
+//        Page<User> users = userService.searchUsersByUsername(username, pageable);
 
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(responseWrapper);
     }
 
     @GetMapping("/roles")
@@ -105,10 +108,13 @@ public class AdminController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-
     @PutMapping("/categories/{categoryId}")
-    public ResponseEntity<Category> updateCategory(@RequestBody Category category){
-        return new ResponseEntity<>(categoryService.update(category),HttpStatus.OK);
+    public ResponseEntity<Category> updateCategory(
+            @PathVariable Long categoryId,
+            @RequestBody CategoryDTO categoryDTO) {
+
+        Category updatedCategory = categoryService.update(categoryId, categoryDTO);
+        return new ResponseEntity<>(updatedCategory, HttpStatus.OK);
     }
 
     @PostMapping("/categories")
@@ -261,4 +267,47 @@ public class AdminController {
         return ResponseEntity.ok(responseWrapper);
     }
 
+
+
+    //THêm quyền
+    @PostMapping("/users/{userId}/role/{roleId}")
+    public ResponseEntity<UserResponseDTO> addRoleToUser(
+            @PathVariable Long userId,
+            @PathVariable Long roleId) {
+
+        UserResponseDTO userRequestDTO = userService.addRoleToUser(userId, roleId);
+        return ResponseEntity.ok(userRequestDTO);
+    }
+
+    @DeleteMapping("/users/{userId}/role/{roleId}")
+    public ResponseEntity<UserResponseDTO> removeRoleFromUser(
+            @PathVariable Long userId,
+            @PathVariable Long roleId) {
+
+        UserResponseDTO userRequestDTO = userService.removeRoleFromUser(userId, roleId);
+        return ResponseEntity.ok(userRequestDTO);
+    }
+
+
+    // Danh sách 10 sản phẩm bán chạy theo thời gian (from, to)
+    @GetMapping("/reports/best-seller-products")
+    public ResponseEntity<List<Product>> getBestSellerProducts(
+            @RequestParam("from") @DateTimeFormat(pattern = "yyyy-MM-dd") Date from,
+            @RequestParam("to") @DateTimeFormat(pattern = "yyyy-MM-dd") Date to) {
+        List<Product> products = productService.getTopBestSellingProducts(from, to, 10);
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+
+
+    //Doanh thu bán hàng theo thời gian (payload : from , to)
+    @GetMapping("/sales-revenue-over-time")
+    public ResponseEntity<Double> getSalesRevenueOverTime(
+            @RequestParam("from") @DateTimeFormat(pattern = "yyyy-MM-dd") Date from,
+            @RequestParam("to") @DateTimeFormat(pattern = "yyyy-MM-dd") Date to) {
+
+        Double totalRevenue = orderService.getTotalRevenueBetweenDates(from, to);
+
+        return ResponseEntity.ok(totalRevenue);
+    }
 }

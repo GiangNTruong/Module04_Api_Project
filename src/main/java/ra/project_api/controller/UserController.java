@@ -6,6 +6,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -43,23 +44,22 @@ public class UserController {
     private final AddressService addressService;
 
     @PutMapping("/account/change-password")
-    public ResponseEntity<ResponseWrapper<String>> changePassword(@RequestParam Long userId, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        userService.changePassword(userId, changePasswordRequest);
+    public ResponseEntity<ResponseWrapper<String>> changePassword(@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.changePassword(username, changePasswordRequest);
+
         ResponseWrapper<String> responseWrapper = ResponseWrapper.<String>builder()
                 .eHttpStatus(EHttpStatus.SUCCESS)
                 .statusCode(HttpStatus.OK.value())
                 .data("Password changed successfully")
                 .build();
+
         return ResponseEntity.ok(responseWrapper);
     }
 
     @GetMapping("/account")
-    public ResponseEntity<UserResponseDTO> getUserAccount(@RequestHeader("Authorization") String token) {
-        // Xóa bỏ "Bearer " từ token
-        String jwt = token.substring(7);
-        // Lấy username từ token
-        String username = jwtProvider.getUserNameFromToken(jwt);
-        // Lấy thông tin người dùng từ username
+    public ResponseEntity<UserResponseDTO> getUserAccount() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         // Chuyển đổi thông tin người dùng sang DTO để trả về
@@ -67,12 +67,8 @@ public class UserController {
         return ResponseEntity.ok(userResponse);
     }
     @PutMapping("/account")
-    public ResponseEntity<UserResponseDTO> updateUserAccount(@RequestHeader("Authorization") String token, @RequestBody UserRequestDTO updateUserRequest) {
-        // Xóa bỏ "Bearer " từ token
-        String jwt = token.substring(7);
-        // Lấy username từ token
-        String username = jwtProvider.getUserNameFromToken(jwt);
-        // Lấy thông tin người dùng từ username
+    public ResponseEntity<UserResponseDTO> updateUserAccount(@RequestBody UserRequestDTO updateUserRequest) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         // Cập nhật thông tin người dùng từ updateUserRequest
@@ -81,9 +77,7 @@ public class UserController {
         user.setAddress(updateUserRequest.getAddress());
         // Nếu email cũng cần cập nhật, thêm dòng dưới đây
         // user.setEmail(updateUserRequest.getEmail());
-        // Lưu thông tin người dùng đã cập nhật
         User updatedUser = userService.updateUser(user);
-        // Chuyển đổi thông tin người dùng sang DTO để trả về
         UserResponseDTO userResponse = modelMapper.map(updatedUser, UserResponseDTO.class);
         return ResponseEntity.ok(userResponse);
     }
@@ -106,11 +100,9 @@ public class UserController {
     }
 
     @PostMapping("/cart/add")
-    public ResponseEntity<ResponseWrapper<String>> addToCart(@RequestHeader("Authorization") String token,
+    public ResponseEntity<ResponseWrapper<String>> addToCart(Principal principal,
                                                              @RequestBody AddToCartRequestDTO requestDTO) {
-        String jwt = token.substring(7);
-        String username = jwtProvider.getUserNameFromToken(jwt);
-
+        String username = principal.getName();
         shoppingCartService.addToCart(username, requestDTO);
 
         ResponseWrapper<String> responseWrapper = ResponseWrapper.<String>builder()
@@ -128,9 +120,7 @@ public class UserController {
                                                                 @RequestHeader("Authorization") String token) {
         String jwt = token.substring(7);
         String username = jwtProvider.getUserNameFromToken(jwt);
-
         shoppingCartService.updateCartItem(cartItemId, username, quantity);
-
         ResponseWrapper<String> responseWrapper = ResponseWrapper.<String>builder()
                 .eHttpStatus(EHttpStatus.SUCCESS)
                 .statusCode(HttpStatus.OK.value())
@@ -205,7 +195,6 @@ public class UserController {
         String jwt = token.substring(7);
         // Get username from token
         String username = jwtProvider.getUserNameFromToken(jwt);
-        // Find the user
         User user = userService.findByUsernameOrEmail(username, username).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
         // Add product to wishlist
         wishListService.addToWishList(user, payload.get("productId"));
@@ -225,7 +214,6 @@ public class UserController {
     public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(Principal principal) {
         String username = principal.getName();
         User user = userService.findByUsernameOrEmail(username, username).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
-        // Get the order history
         List<OrderHistoryResponse> orderHistory = orderService.getOrderHistoryByUser(user);
         return ResponseEntity.ok(orderHistory);
     }

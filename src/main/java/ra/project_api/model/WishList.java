@@ -4,6 +4,8 @@ package ra.project_api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
+
 @Entity
 @Table(name = "wish_list")
 @AllArgsConstructor
@@ -24,4 +26,6 @@ public class WishList
     @ManyToOne
     @JoinColumn(name = "product_id", referencedColumnName = "product_id")
     private Product product;
+
+
 }

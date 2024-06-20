@@ -8,6 +8,7 @@ import ra.project_api.dto.response.OrderHistoryResponse;
 import ra.project_api.model.Order;
 import ra.project_api.model.User;
 
+import java.util.Date;
 import java.util.List;
 
 public interface IOrderService {
@@ -20,4 +21,5 @@ public interface IOrderService {
     List<OrderHistoryResponse> getOrderHistoryByStatusAndUser(OrderStatus orderStatus, String username);
     OrderDetailsResponseDTO getOrderDetailsBySerialNumber(String serialNumber, String username);
     void cancelOrder(Long orderId, String username);
+    Double getTotalRevenueBetweenDates(Date from, Date to);
 }
